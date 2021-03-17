@@ -10,21 +10,10 @@ fknn <- function(train_features, train_labels, test_features, k, m) {
   d <- ncol(train_features) # == ncol(test_features)
   c <- ncol(train_labels)
 
-  # value at [x, y] is a distance between x-th input point and y-th test point
-  distances <- matrix(apply(
-    (matrix(rep(test_features, each = n_train), ncol = d) -
-     matrix(rep(t(train_features), times = n_test), ncol= d, byrow = TRUE))^2,
-    1,
-    sum), ncol = n_test)
-
-  do.call(
-    rbind,
-    lapply(1:n_test, function(p_ind) {
-      nearest_inds <- order(distances[, p_ind], decreasing = TRUE)[1:k]
-      apply(
-      train_labels[nearest_inds,] *
-        matrix(rep(distances[nearest_inds, p_ind] ^ (- 1 / (m - 1)), times = c), ncol = c),
-      2,
-      sum) / sum (distances[nearest_inds, p_ind] ^ (- 1 / (m - 1)))
-    }))
+  do.call(rbind, lapply(1:n_test, function(obs_ind) {
+    distances_squared <- apply((train_features - matrix(rep(test_features[obs_ind, ], each = n_train), nrow = n_train))^2, 1, sum)
+    nearest_inds <- order(distances_squared, decreasing = TRUE)[1:k]
+    distances_squared <- distances_squared[nearest_inds] ^ (- 1 / (m - 1))
+    matrix(distances_squared, ncol = k) %*% as.matrix(train_labels[nearest_inds, ]) / sum(distances_squared)
+  }))
 }
